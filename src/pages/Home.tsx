@@ -5,9 +5,35 @@ import { Layout } from '@/components/Layout';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
+import { AdminPanel } from '@/components/AdminPanel';
+import { useState } from 'react';
 
 export default function Home() {
   const { user, isAdmin } = useAuth();
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [departmentsData, setDepartmentsData] = useState(departments);
+
+  const handleDeleteNote = (noteId: string) => {
+    setDepartmentsData(prevDepartments => 
+      prevDepartments.map(dept => ({
+        ...dept,
+        branches: dept.branches.map(branch => ({
+          ...branch,
+          subjects: branch.subjects.map(subject => ({
+            ...subject,
+            notes: subject.notes.filter(note => note.id !== noteId)
+          }))
+        }))
+      }))
+    );
+  };
+
+  // Get all notes for admin panel
+  const allNotes = departmentsData.reduce((acc, dept) => 
+    acc.concat(dept.branches.reduce((branchAcc, branch) => 
+      branchAcc.concat(branch.subjects.reduce((subjectAcc, subject) => 
+        subjectAcc.concat(subject.notes), [])), [])), []
+  );
 
   return (
     <Layout>
@@ -33,7 +59,7 @@ export default function Home() {
         )}
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {departments.map((department) => (
+          {departmentsData.map((department) => (
             <Link key={department.id} to={`/departments/${department.slug}`}>
               <Card className="h-full overflow-hidden transition-all hover:shadow-lg">
                 <div className="aspect-video w-full overflow-hidden">
@@ -56,6 +82,15 @@ export default function Home() {
             </Link>
           ))}
         </div>
+        
+        {isAdmin() && (
+          <AdminPanel
+            notes={allNotes}
+            onDeleteNote={handleDeleteNote}
+            isVisible={showAdminPanel}
+            onToggleVisibility={() => setShowAdminPanel(!showAdminPanel)}
+          />
+        )}
       </div>
     </Layout>
   );
