@@ -1,3 +1,19 @@
-import { useToast, toast } from '@/hooks/use-toast';
+import { toast as sonnerToast } from "sonner";
 
-export { useToast, toast };
+export const useToast = () => {
+  return {
+    toast: ({ title, description, variant }: { 
+      title: string; 
+      description?: string; 
+      variant?: "default" | "destructive" 
+    }) => {
+      if (variant === "destructive") {
+        sonnerToast.error(title, { description });
+      } else {
+        sonnerToast.success(title, { description });
+      }
+    }
+  };
+};
+
+export { sonnerToast as toast };

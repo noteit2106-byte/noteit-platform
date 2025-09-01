@@ -9,7 +9,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { departments } from '@/data/departments';
 import { useToast } from '@/components/ui/use-toast';
-// No need for FileUploader component as we're using the native Input
 import { Checkbox } from '@/components/ui/checkbox';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 
@@ -28,6 +27,7 @@ export default function AdminUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [isHandwritten, setIsHandwritten] = useState(false);
   const [batch, setBatch] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
   
   const selectedDepartment = departments.find(d => d.id === departmentId);
   const branches = selectedDepartment?.branches || [];
@@ -38,6 +38,17 @@ export default function AdminUpload() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
+      
+      // Check file size (limit to 10MB)
+      if (selectedFile.size > 10 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please select a file smaller than 10MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
       setFile(selectedFile);
       
       // Auto-detect file type based on extension
@@ -56,54 +67,109 @@ export default function AdminUpload() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const generateUniqueId = () => {
+    return Date.now().toString() + Math.random().toString(36).substr(2, 9);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsUploading(true);
     
-    // Validate form fields
-    if (!departmentId || !branchId || !subjectId || !title || !description) {
+    try {
+      // Validate form fields
+      if (!departmentId || !branchId || !subjectId || !title || !description) {
+        toast({
+          title: "Error",
+          description: "Please fill in all required fields",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Additional validation for upload type
+      if (uploadType === 'markdown' && !content) {
+        toast({
+          title: "Error",
+          description: "Please provide content for the note",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (uploadType === 'file' && !file) {
+        toast({
+          title: "Error",
+          description: "Please upload a file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Find the target subject to add the note to
+      const department = departments.find(d => d.id === departmentId);
+      const branch = department?.branches.find(b => b.id === branchId);
+      const subject = branch?.subjects.find(s => s.id === subjectId);
+      
+      if (!subject) {
+        toast({
+          title: "Error",
+          description: "Could not find the selected subject",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Create new note object
+      const newNote = {
+        id: generateUniqueId(),
+        title: title.trim(),
+        description: description.trim(),
+        content: uploadType === 'markdown' ? content : `File: ${file?.name}`,
+        fileType: uploadType === 'file' ? fileType : 'markdown',
+        fileName: file?.name || undefined,
+        fileSize: file?.size || undefined,
+        isHandwritten: uploadType === 'file' ? isHandwritten : false,
+        batch: batch || undefined,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        uploadType: uploadType
+      };
+
+      // Add the note to the subject
+      subject.notes.push(newNote);
+      
+      // Simulate file upload delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: "Success!",
+        description: `Note "${title}" has been uploaded successfully.`,
+      });
+      
+      // Reset form
+      setDepartmentId('');
+      setBranchId('');
+      setSubjectId('');
+      setTitle('');
+      setDescription('');
+      setContent('');
+      setFile(null);
+      setIsHandwritten(false);
+      setBatch('');
+      
+      // Navigate back to admin dashboard after a short delay
+      setTimeout(() => {
+        navigate('/admin');
+      }, 2000);
+      
+    } catch (error) {
+      toast({
+        title: "Upload Failed",
+        description: "There was an error uploading your note. Please try again.",
         variant: "destructive",
       });
-      return;
-    }
-    
-    // Additional validation for upload type
-    if (uploadType === 'markdown' && !content) {
-      toast({
-        title: "Error",
-        description: "Please provide content for the note",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    if (uploadType === 'file' && !file) {
-      toast({
-        title: "Error",
-        description: "Please upload a file",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    // In a real application, this would upload the file and send the data to a server
-    // For this demo, we'll just show a success message
-    toast({
-      title: "Note Uploaded",
-      description: "Your note has been successfully uploaded.",
-    });
-    
-    // Navigate back to the subject page
-    const department = departments.find(d => d.id === departmentId);
-    const branch = department?.branches.find(b => b.id === branchId);
-    const subject = branch?.subjects.find(s => s.id === subjectId);
-    
-    if (department && branch && subject) {
-      navigate(`/departments/${department.slug}/branches/${branch.slug}/subjects/${subject.slug}`);
-    } else {
-      navigate('/');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -121,7 +187,7 @@ export default function AdminUpload() {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="department">Department</Label>
+                  <Label htmlFor="department">Department *</Label>
                   <Select
                     value={departmentId}
                     onValueChange={(value) => {
@@ -144,7 +210,7 @@ export default function AdminUpload() {
                 </div>
 
                 <div>
-                  <Label htmlFor="branch">Branch</Label>
+                  <Label htmlFor="branch">Branch *</Label>
                   <Select
                     value={branchId}
                     onValueChange={(value) => {
@@ -167,7 +233,7 @@ export default function AdminUpload() {
                 </div>
 
                 <div>
-                  <Label htmlFor="subject">Subject</Label>
+                  <Label htmlFor="subject">Subject *</Label>
                   <Select
                     value={subjectId}
                     onValueChange={setSubjectId}
@@ -187,7 +253,7 @@ export default function AdminUpload() {
                 </div>
 
                 <div>
-                  <Label htmlFor="title">Note Title</Label>
+                  <Label htmlFor="title">Note Title *</Label>
                   <Input
                     id="title"
                     placeholder="Enter the title of the note"
@@ -197,7 +263,7 @@ export default function AdminUpload() {
                 </div>
 
                 <div>
-                  <Label htmlFor="description">Description</Label>
+                  <Label htmlFor="description">Description *</Label>
                   <Input
                     id="description"
                     placeholder="Brief description of the note"
@@ -225,7 +291,7 @@ export default function AdminUpload() {
                 </div>
 
                 <div className="space-y-3 border p-4 rounded-md">
-                  <Label>Content Type</Label>
+                  <Label>Content Type *</Label>
                   <RadioGroup 
                     value={uploadType} 
                     onValueChange={(value) => setUploadType(value as 'markdown' | 'file')}
@@ -243,7 +309,7 @@ export default function AdminUpload() {
 
                   {uploadType === 'markdown' ? (
                     <div className="pt-3">
-                      <Label htmlFor="content">Content (Markdown)</Label>
+                      <Label htmlFor="content">Content (Markdown) *</Label>
                       <Textarea
                         id="content"
                         placeholder="Enter the note content using Markdown format"
@@ -255,14 +321,17 @@ export default function AdminUpload() {
                   ) : (
                     <div className="pt-3 space-y-4">
                       <div>
-                        <Label htmlFor="file-upload">Upload File</Label>
+                        <Label htmlFor="file-upload">Upload File *</Label>
                         <Input
                           id="file-upload"
                           type="file"
                           className="mt-1"
                           onChange={handleFileChange}
-                          accept=".pdf,.doc,.docx,.ppt,.pptx,.jpg,.jpeg,.png,.gif"
+                          accept="/images/FileUpload.jpg"
                         />
+                        <p className="text-sm text-gray-500 mt-1">
+                          Maximum file size: 10MB
+                        </p>
                       </div>
                       
                       <div className="flex items-center space-x-2">
@@ -275,11 +344,11 @@ export default function AdminUpload() {
                       </div>
                       
                       {file && (
-                        <div className="border p-3 rounded-md bg-gray-50">
+                        <div className="border p-3 rounded-md bg-gray-50 dark:bg-gray-800">
                           <p className="text-sm font-medium">Selected File:</p>
                           <p className="text-sm">{file.name}</p>
                           <p className="text-sm text-gray-500">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                            {(file.size / 1024 / 1024).toFixed(2)} MB • {fileType.toUpperCase()}
                           </p>
                         </div>
                       )}
@@ -289,10 +358,20 @@ export default function AdminUpload() {
               </div>
 
               <div className="flex justify-end space-x-4">
-                <Button type="button" variant="outline" onClick={() => navigate('/')}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => navigate('/admin')}
+                  disabled={isUploading}
+                >
                   Cancel
                 </Button>
-                <Button type="submit">Upload Note</Button>
+                <Button 
+                  type="submit" 
+                  disabled={isUploading}
+                >
+                  {isUploading ? 'Uploading...' : 'Upload Note'}
+                </Button>
               </div>
             </form>
           </CardContent>
