@@ -2,13 +2,15 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UserPlus, BookOpen, Grid2X2, Users, Upload, Building } from 'lucide-react';
+import { UserPlus, BookOpen, Grid2X2, Users, Upload, Building, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { AdminPanel } from '@/components/AdminPanel';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
+  const [showNoteManager, setShowNoteManager] = useState(false);
   
   // Redirect non-admin users away from this page
   useEffect(() => {
@@ -31,32 +33,39 @@ export default function AdminDashboard() {
       color: "bg-blue-50 dark:bg-blue-900/20"
     },
     {
+      title: "Manage Notes",
+      description: "Search, view, and delete notes from the system",
+      icon: <Trash2 className="h-8 w-8" />,
+      action: () => setShowNoteManager(true),
+      color: "bg-red-50 dark:bg-red-900/20"
+    },
+    {
       title: "Manage Departments",
       description: "Add, edit, or delete academic departments",
       icon: <Building className="h-8 w-8" />,
       action: () => navigate('/admin/departments'),
-      color: "bg-red-50 dark:bg-red-900/20"
+      color: "bg-purple-50 dark:bg-purple-900/20"
     },
     {
       title: "Manage Branches",
       description: "Add, edit, or delete branches in departments",
       icon: <Grid2X2 className="h-8 w-8" />,
       action: () => navigate('/admin/branches'),
-      color: "bg-purple-50 dark:bg-purple-900/20"
+      color: "bg-green-50 dark:bg-green-900/20"
     },
     {
       title: "Manage Subjects",
       description: "Add, edit, or delete subjects in branches",
       icon: <BookOpen className="h-8 w-8" />,
       action: () => navigate('/admin/subjects'),
-      color: "bg-green-50 dark:bg-green-900/20"
+      color: "bg-amber-50 dark:bg-amber-900/20"
     },
     {
       title: "Admin Users",
       description: "Manage administrator access permissions",
       icon: <Users className="h-8 w-8" />,
       action: () => navigate('/admin/users'),
-      color: "bg-amber-50 dark:bg-amber-900/20"
+      color: "bg-indigo-50 dark:bg-indigo-900/20"
     }
   ];
 
@@ -72,7 +81,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {adminModules.map((module, index) => (
             <Card key={index} className="overflow-hidden">
               <CardHeader className={`${module.color} p-4`}>
@@ -90,12 +99,20 @@ export default function AdminDashboard() {
                   variant="outline" 
                   onClick={module.action}
                 >
-                  Manage
+                  {module.title === "Manage Notes" ? "Open Note Manager" : "Manage"}
                 </Button>
               </CardFooter>
             </Card>
           ))}
         </div>
+
+        {/* Note Management Panel */}
+        {showNoteManager && (
+          <AdminPanel
+            isVisible={showNoteManager}
+            onToggleVisibility={() => setShowNoteManager(false)}
+          />
+        )}
       </div>
     </Layout>
   );

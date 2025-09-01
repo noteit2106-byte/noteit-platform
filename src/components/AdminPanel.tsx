@@ -5,7 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/
 import { Badge } from './ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
 import { Alert, AlertDescription } from './ui/alert';
-import { Search, Trash2, FileText, AlertTriangle, CheckCircle, Shield, EyeOff } from 'lucide-react';
+import { Search, Trash2, FileText, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { departments, Note as DepartmentNote } from '../data/departments';
 import { subjects, Note as SubjectNote } from '../data/subjects';
 
@@ -25,8 +25,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   isVisible,
   onToggleVisibility,
 }) => {
-  const [adminPassword, setAdminPassword] = useState('');
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [allNotes, setAllNotes] = useState<ExtendedNote[]>([]);
   const [filteredNotes, setFilteredNotes] = useState<ExtendedNote[]>([]);
@@ -87,14 +85,6 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     }
   }, [searchTerm, allNotes]);
 
-  const handleAdminLogin = () => {
-    if (adminPassword === 'admin123') {
-      setIsAuthenticated(true);
-    } else {
-      alert('Invalid admin password');
-    }
-  };
-
   const handleDeleteNote = (note: ExtendedNote) => {
     setNoteToDelete(note);
     setDeleteConfirmOpen(true);
@@ -145,41 +135,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
     setNoteToDelete(null);
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    setAdminPassword('');
-    setSearchTerm('');
-    setSuccessMessage('');
-  };
-
   if (!isVisible) {
-    return (
-      <Button
-        onClick={onToggleVisibility}
-        variant="outline"
-        size="sm"
-        className="fixed bottom-4 right-4 z-50"
-      >
-        <Shield className="h-4 w-4 mr-2" />
-        Admin
-      </Button>
-    );
+    return null;
   }
 
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] overflow-hidden">
+      <Card className="w-full max-w-6xl max-h-[90vh] overflow-hidden">
         <CardHeader className="pb-4">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl font-bold flex items-center gap-2">
-                <Shield className="h-5 w-5" />
-                Admin Panel
-              </CardTitle>
-              <CardDescription>Manage notes across all subjects and departments</CardDescription>
+              <CardTitle className="text-2xl font-bold">Note Management System</CardTitle>
+              <CardDescription>Search, view, and manage all notes across the platform</CardDescription>
             </div>
             <Button onClick={onToggleVisibility} variant="ghost" size="sm">
-              <EyeOff className="h-4 w-4" />
+              <X className="h-4 w-4" />
             </Button>
           </div>
           
@@ -191,116 +161,83 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               </AlertDescription>
             </Alert>
           )}
+          
+          <div className="flex items-center space-x-2 mt-4">
+            <Search className="h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search notes by title, description, subject, department, or branch..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="flex-1"
+            />
+          </div>
+          
+          <div className="text-sm text-gray-600 mt-2">
+            Showing {filteredNotes.length} of {allNotes.length} notes
+          </div>
         </CardHeader>
         
         <CardContent className="overflow-y-auto max-h-[60vh]">
-          {!isAuthenticated ? (
-            <div className="space-y-4">
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2">
-                  Admin Password
-                </label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={adminPassword}
-                  onChange={(e) => setAdminPassword(e.target.value)}
-                  placeholder="Enter admin password"
-                  onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
-                />
-              </div>
-              <Button onClick={handleAdminLogin} className="w-full">
-                Login
-              </Button>
-              <p className="text-sm text-muted-foreground text-center">
-                Demo password: admin123
-              </p>
+          {filteredNotes.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              {searchTerm ? 'No notes found matching your search.' : 'No notes available.'}
             </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold">Manage Notes ({allNotes.length} total)</h3>
-                <Button onClick={handleLogout} variant="outline" size="sm">
-                  Logout
-                </Button>
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Search className="h-4 w-4 text-gray-500" />
-                <Input
-                  placeholder="Search notes by title, description, subject, department, or branch..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="flex-1"
-                />
-              </div>
-              
-              <div className="text-sm text-gray-600">
-                Showing {filteredNotes.length} of {allNotes.length} notes
-              </div>
-
-              {filteredNotes.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  {searchTerm ? 'No notes found matching your search.' : 'No notes available.'}
-                </div>
-              ) : (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {filteredNotes.map((note) => (
-                    <Card key={`${note.source}-${note.id}`} className="border border-gray-200">
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <FileText className="h-4 w-4 text-blue-500" />
-                              <h3 className="font-semibold text-lg">{note.title}</h3>
-                              <Badge variant="outline" className="text-xs">
-                                {note.fileType?.toUpperCase() || 'MARKDOWN'}
-                              </Badge>
-                            </div>
-                            
-                            <p className="text-gray-600 mb-3">{note.description}</p>
-                            
-                            <div className="flex flex-wrap gap-2 mb-2">
-                              {note.departmentName && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {note.departmentName}
-                                </Badge>
-                              )}
-                              {note.branchName && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {note.branchName}
-                                </Badge>
-                              )}
-                              {note.subjectName && (
-                                <Badge variant="secondary" className="text-xs">
-                                  {note.subjectName}
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className="text-xs">
-                                {note.source}
-                              </Badge>
-                            </div>
-                            
-                            <p className="text-xs text-gray-500">
-                              Created: {new Date(note.createdAt).toLocaleDateString()}
-                              {note.updatedAt && ` • Updated: ${new Date(note.updatedAt).toLocaleDateString()}`}
-                            </p>
-                          </div>
-                          
-                          <Button
-                            onClick={() => handleDeleteNote(note)}
-                            variant="destructive"
-                            size="sm"
-                            className="ml-4"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+              {filteredNotes.map((note) => (
+                <Card key={`${note.source}-${note.id}`} className="border border-gray-200">
+                  <CardContent className="p-4">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-2">
+                          <FileText className="h-4 w-4 text-blue-500" />
+                          <h3 className="font-semibold text-lg">{note.title}</h3>
+                          <Badge variant="outline" className="text-xs">
+                            {note.fileType?.toUpperCase() || 'MARKDOWN'}
+                          </Badge>
                         </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+                        
+                        <p className="text-gray-600 mb-3">{note.description}</p>
+                        
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {note.departmentName && (
+                            <Badge variant="secondary" className="text-xs">
+                              {note.departmentName}
+                            </Badge>
+                          )}
+                          {note.branchName && (
+                            <Badge variant="secondary" className="text-xs">
+                              {note.branchName}
+                            </Badge>
+                          )}
+                          {note.subjectName && (
+                            <Badge variant="secondary" className="text-xs">
+                              {note.subjectName}
+                            </Badge>
+                          )}
+                          <Badge variant="outline" className="text-xs">
+                            {note.source}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-xs text-gray-500">
+                          Created: {new Date(note.createdAt).toLocaleDateString()}
+                          {note.updatedAt && ` • Updated: ${new Date(note.updatedAt).toLocaleDateString()}`}
+                        </p>
+                      </div>
+                      
+                      <Button
+                        onClick={() => handleDeleteNote(note)}
+                        variant="destructive"
+                        size="sm"
+                        className="ml-4"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </CardContent>
