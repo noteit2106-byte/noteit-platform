@@ -2,15 +2,17 @@ import { useNavigate } from 'react-router-dom';
 import { Layout } from '@/components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { UserPlus, BookOpen, Grid2X2, Users, Upload, Building, Trash2 } from 'lucide-react';
+import { UserPlus, BookOpen, Grid2X2, Users, Upload, Building, Trash2, BarChart3 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEffect, useState } from 'react';
 import { AdminPanel } from '@/components/AdminPanel';
+import { AdminAnalytics } from '@/components/AdminAnalytics';
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
   const { isAdmin, user } = useAuth();
   const [showNoteManager, setShowNoteManager] = useState(false);
+  const [showAnalytics, setShowAnalytics] = useState(false);
   
   // Redirect non-admin users away from this page
   useEffect(() => {
@@ -25,6 +27,13 @@ export default function AdminDashboard() {
   }
 
   const adminModules = [
+    {
+      title: "Platform Analytics",
+      description: "View comprehensive analytics and insights",
+      icon: <BarChart3 className="h-8 w-8" />,
+      action: () => setShowAnalytics(true),
+      color: "bg-cyan-50 dark:bg-cyan-900/20"
+    },
     {
       title: "Upload Notes",
       description: "Add new notes to the repository for students",
@@ -81,7 +90,7 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {adminModules.map((module, index) => (
             <Card key={index} className="overflow-hidden">
               <CardHeader className={`${module.color} p-4`}>
@@ -99,7 +108,8 @@ export default function AdminDashboard() {
                   variant="outline" 
                   onClick={module.action}
                 >
-                  {module.title === "Manage Notes" ? "Open Note Manager" : "Manage"}
+                  {module.title === "Manage Notes" ? "Open Note Manager" : 
+                   module.title === "Platform Analytics" ? "View Analytics" : "Manage"}
                 </Button>
               </CardFooter>
             </Card>
@@ -111,6 +121,14 @@ export default function AdminDashboard() {
           <AdminPanel
             isVisible={showNoteManager}
             onToggleVisibility={() => setShowNoteManager(false)}
+          />
+        )}
+
+        {/* Analytics Panel */}
+        {showAnalytics && (
+          <AdminAnalytics
+            isVisible={showAnalytics}
+            onToggleVisibility={() => setShowAnalytics(false)}
           />
         )}
       </div>
